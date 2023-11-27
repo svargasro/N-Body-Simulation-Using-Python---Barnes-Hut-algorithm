@@ -1,6 +1,6 @@
 numpy 
 pillow
-hdf5
+h5py
 matplotlib
 dask
 

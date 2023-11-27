@@ -10,6 +10,7 @@ import h5py
 import dask.array as da
 
 from negmass_nbody.export.save import save_data
+from barnes.BarnesHut import Simulation,SimulationBody,Particle
 
 __author__ = "Jamie Farnes"
 __email__ = "jamie.farnes@oerc.ox.ac.uk"
@@ -112,12 +113,51 @@ def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
     Returns:
     velocity: updated particle velocities in cartesian coordinates.
     """
+    focus_index    = 0
+    node_list_index= 1
+    node_list      = ["regional", "point", "both"]
+    node_type      = node_list[node_list_index]
+    restitution_coefficient=0
+    absolute_pos = True
+    timestep       = 100000
+    
+    # mass,density, position, velocity, color (data from the web)
+    # starting_data  = [{'suns':    [('Sun',     1    , 1.41, (0., 0., 0.),     (0., 0., 0.),    'yellow')],
+    #                             'planets': [('Mercury', 0.055, 5.43, (-0.449, 0., 0.), (0., 47.36, 0.), 'orange'),
+    #                                        ('Venus',   0.815, 5.24, (-0.728, 0., 0),  (0., 35.02, 0.), 'yellow'),
+    #                                         ('Earth',   1    , 5.51, (-1, 0, 0.),      (0., 29.78, 0.), 'lightgreen'),
+    #                                         ('Mars',    0.107, 3.93, (-1.658, 0., 0.), (0., 24.08, 0.), 'red')]}]
+    
 
-    # Implement Barnes-Hut here
-    # ...
-    # You need to build the octree and perform the Barnes-Hut approximation
-    # ...
+    #Simulations solo contiene un elemento, que se llamará simulation.
+    simulation = Simulation(theta, restitution_coefficient, absolute_pos, focus_index)
+    
+    
 
+    position = position.compute()
+    velocity = velocity.compute()
+    shapeVelocity= velocity.shape
+    mass = mass.compute()
+    starting_data_list = list()
+    starting_data = [{'particles':starting_data_list}]
+                     
+    for i in range(0,len(position)):
+        starting_data_list.append((mass[i], position[i], velocity[i]))
+
+    for i, system in enumerate(starting_data):
+        for bodytype in system.keys():
+            for body in system[bodytype]:
+                SimulationBody(simulation, body[0], body[1], body[2])
+
+    simulation.set_focus(None)
+                #Planet(self.simulations[i], body[0], body[1], body[2], body[3], body[4], body[5], self.trail_node_number, self.trail_node_distance)
+    #simulation.calculate(self.timestep, self.draw_box, self.node_type)
+    
+    simulation.calculate(timestep, True , node_type)
+    
+    velocity=np.zeros(shapeVelocity)
+    for i,body in enumerate(simulation.bodies):
+        velocity[i]= body.velocity
     return velocity
 
 
@@ -183,8 +223,9 @@ def run_nbody():
         # Start the N-body iteration:
         start = t.time()
         
-        # Update the particle velocities:
-        velocity = update_velocities(position, velocity, mass, G, epsilon)
+        # Update the particle velocities: (Devuelve Numpy)
+        velocity = update_velocities_bh(position, velocity, mass, G, epsilon)
+        
         
         # Update the particle positions:
         position = position.compute()
@@ -196,6 +237,7 @@ def run_nbody():
         
         # Apply various boundary conditions:
         position, velocity = apply_boundary_conditions(position, velocity, limit, radius)
+
         
         # Save the data:
         save_data(position, './DATA/position' + str(index+1) + '.hdf5', chunks_value)
