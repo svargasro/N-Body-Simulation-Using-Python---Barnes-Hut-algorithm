@@ -187,7 +187,7 @@ class Simulation:
         return body_data, self.tree_nodes, system_data, self.cm_pos - default_pos
 
     def update_interactions(self, node_type):
-        center = self.get_focus_pos()
+        center = self.get_focus_pos() #Devuelve (0,0,0) siempre. 
 
         largest_val = 0
         furthest_body = None

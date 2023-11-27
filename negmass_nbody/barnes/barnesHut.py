@@ -258,7 +258,7 @@ class Octree():
             distance = distance_vec
             distance_mag = distance_val
 
-        G = 6.6743 * 10**(-11)
+        G = 1 #G igual a 1
         e_pot = G * particle.mass * node.mass / distance_mag
         force_mag = G * particle.mass * node.mass / np.dot(distance, distance)
         force = (distance / distance_mag) * force_mag
@@ -411,12 +411,14 @@ class Simulation:
             self.update_interactions(node_type)
             for body in self.bodies:
                 body.acceleration = body.force / body.mass
+        
 
         self.update_center_of_mass(timestep)
         for body in self.bodies:
             body.update_velocity(timestep)
             body.update_position(timestep)
 
+        return
         self.update_interactions(node_type)
 
         self.tree_nodes = []
@@ -498,7 +500,7 @@ class Simulation:
         self.tree.update_forces_collisions()
         self.compute_collisions(self.tree.collision_dic)
 
-    def compute_collisions(self, collisions):
+    def compute_collisions(self, collisions):#Ojito.
         """Method that computes body collisions.
 
         Method that computes body collisions based on the resitution
