@@ -1,0 +1,6 @@
+numpy 
+pillow
+hdf5
+matplotlib
+dask
+
