@@ -10,7 +10,7 @@ import h5py
 import dask.array as da
 
 from negmass_nbody.export.save import save_data
-from barnes.BarnesHut import Simulation,SimulationBody,Particle
+from negmass_nbody.barnes.BarnesHut import Simulation,SimulationBody
 
 __author__ = "Jamie Farnes"
 __email__ = "jamie.farnes@oerc.ox.ac.uk"
@@ -156,9 +156,12 @@ def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
     simulation.calculate(timestep, True , node_type)
     
     velocity=np.zeros(shapeVelocity)
+    position=np.zeros(shapeVelocity)
+
     for i,body in enumerate(simulation.bodies):
         velocity[i]= body.velocity
-    return velocity
+        position[i]= body.position
+    return velocity, position
 
 
 
@@ -224,12 +227,12 @@ def run_nbody():
         start = t.time()
         
         # Update the particle velocities: (Devuelve Numpy)
-        velocity = update_velocities_bh(position, velocity, mass, G, epsilon)
+        velocity,position = update_velocities_bh(position, velocity, mass, G, epsilon)
         
         
         # Update the particle positions:
-        position = position.compute()
-        position += velocity
+        #position = position.compute()
+        #position += velocity
         
         # End the iteration:
         end = t.time()

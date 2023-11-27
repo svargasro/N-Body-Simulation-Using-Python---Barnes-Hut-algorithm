@@ -195,7 +195,7 @@ class Octree():
             particle.e_pot /= 1  # 2
 
             if len(self.collision_dic[particle]) == 0:
-                print('Debe ser 0: ',len(self.collision_dic[particle]))
+                #print('Debe ser 0: ',len(self.collision_dic[particle]))
                 del self.collision_dic[particle]
 
     def calc_forces(self, node, particle):
