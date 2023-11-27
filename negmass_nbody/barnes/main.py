@@ -50,7 +50,7 @@ class Interface():
         self.restitution_coefficient = 0  # inelastic collisions, if 1 fully elastic if 0 merge of planets
 
         self.absolute_pos   = True
-        self.focus_index    = 1  # ["none","body","cm"] 0,1,2
+        self.focus_index    = 0  # ["none","body","cm"] 0,1,2
 
         self.show_data      = True
         self.show_time      = True
@@ -726,7 +726,7 @@ Root n. size: {data[12]:.2e}\n"""
     def update_program(self):
         """Method that updates the main simulation loop.
 
-        Method that calls update in system phsics and screen.
+        Method that calls update in system physics and screen.
         """
         if not self.pause or self.frame_count == 0:
             self.frame_count += 1
