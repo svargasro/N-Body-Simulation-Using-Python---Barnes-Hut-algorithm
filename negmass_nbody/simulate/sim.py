@@ -10,7 +10,7 @@ import h5py
 import dask.array as da
 
 from negmass_nbody.export.save import save_data
-from negmass_nbody.barnes.BarnesHut import Simulation,SimulationBody
+from negmass_nbody.barnes.barnesHut import Simulation,SimulationBody
 
 __author__ = "Jamie Farnes"
 __email__ = "jamie.farnes@oerc.ox.ac.uk"
@@ -114,12 +114,13 @@ def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
     velocity: updated particle velocities in cartesian coordinates.
     """
     focus_index    = 0
-    node_list_index= 1
+    node_list_index= 2 #¿Y si fuera 0?
     node_list      = ["regional", "point", "both"]
     node_type      = node_list[node_list_index]
     restitution_coefficient=0
     absolute_pos = True
-    timestep       = 100000
+    timestep=1
+    #timestep       = 100000
     
     # mass,density, position, velocity, color (data from the web)
     # starting_data  = [{'suns':    [('Sun',     1    , 1.41, (0., 0., 0.),     (0., 0., 0.),    'yellow')],
@@ -138,6 +139,7 @@ def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
     velocity = velocity.compute()
     shapeVelocity= velocity.shape
     mass = mass.compute()
+
     starting_data_list = list()
     starting_data = [{'particles':starting_data_list}]
                      
@@ -157,12 +159,13 @@ def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
     
     velocity=np.zeros(shapeVelocity)
     position=np.zeros(shapeVelocity)
+    
 
     for i,body in enumerate(simulation.bodies):
         velocity[i]= body.velocity
-        position[i]= body.position
-    return velocity, position
-
+        position[i]=body.position
+    return position, velocity
+    
 
 
 def apply_boundary_conditions(position, velocity, limit, radius):
@@ -227,10 +230,11 @@ def run_nbody():
         start = t.time()
         
         # Update the particle velocities: (Devuelve Numpy)
-        velocity,position = update_velocities_bh(position, velocity, mass, G, epsilon)
-        
+        position, velocity = update_velocities_bh(position, velocity, mass, G, epsilon)
         
         # Update the particle positions:
+    
+
         #position = position.compute()
         #position += velocity
         

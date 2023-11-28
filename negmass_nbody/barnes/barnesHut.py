@@ -258,7 +258,7 @@ class Octree():
             distance = distance_vec
             distance_mag = distance_val
 
-        G = 1 #G igual a 1
+        G = 1 #G equals 1
         e_pot = G * particle.mass * node.mass / distance_mag
         force_mag = G * particle.mass * node.mass / np.dot(distance, distance)
         force = (distance / distance_mag) * force_mag
@@ -302,7 +302,7 @@ class Octree():
 class Simulation:
     """Handles data and connection between simulation bodies."""
 
-    def __init__(self, theta=1, rc=0, absolute_pos=True, focus_index=0):
+    def __init__(self, theta=1/2, rc=0, absolute_pos=True, focus_index=0):
         """Setup of the simulation.
 
         Method that sets up the simulation with parameters and type of
@@ -351,6 +351,7 @@ class Simulation:
             print("error: no bodies left")
 
     def set_focus(self, body):
+
         if body in self.bodies:
             self.focused_body = body
         elif self.focus_type == "body":
@@ -413,14 +414,17 @@ class Simulation:
                 body.acceleration = body.force / body.mass
         
 
-        self.update_center_of_mass(timestep)
+        #self.update_center_of_mass(timestep)
+        #Cambio interesante
         for body in self.bodies:
-            body.update_velocity(timestep)
             body.update_position(timestep)
+            body.update_velocity(timestep)
+            
 
         return
-        self.update_interactions(node_type)
 
+        self.update_interactions(node_type)
+        
         self.tree_nodes = []
         if draw_box:
             self.tree.get_all_nodes(self.tree.root_node, self.tree_nodes)
@@ -486,7 +490,8 @@ class Simulation:
         largest_val = 0
         furthest_body = None
         for body in self.bodies:
-            for i, val in np.ndenumerate(body.position):
+            #for i, val in np.ndenumerate(body.position): Cambié
+            for i, val in enumerate(body.position):
                 dist_sqr = (val - center[i])**2
                 if dist_sqr > largest_val:
                     largest_val = dist_sqr
@@ -511,7 +516,8 @@ class Simulation:
             collisions: All collisons as extractes from the Barnes-Hut program.
         """
         self.destroyed = []
-        bodies = list(collisions.keys())
+        #bodies = list(collisions.keys())
+        bodies = []
         bodies.sort(key=lambda element: element.mass)
         for body in bodies:
             other_bodies = collisions[body]
