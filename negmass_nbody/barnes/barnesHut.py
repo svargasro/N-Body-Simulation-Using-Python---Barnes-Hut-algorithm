@@ -251,9 +251,8 @@ class Simulation:
 
         Args:
             theta: Theta value for the Barnes Hut simulation.
-            rc: Restitution coefficient for collisions.
-            focus_index: Index of the list focus_options form 0 to 2.
-            node_type: String that determines what nodes are displayed.
+            G: Gravitational constant.
+            epsilon: Softening factor.
         """
         
         
@@ -333,14 +332,11 @@ class SimulationBody:
 
         Args:
             simulation: Simulation that stores all other bodies.
-            name: Name/Unique identifier of body.
             mass: Mass of the body in kg.
-            density: Density of the body in g/cm3.
             position: Position vector in meters.
             velocity: Velocity vector in m/s.
-            color: Color of the body.
-            nr_pos: Trail node number of the body.
-            point_dist: Distance between nodes in the trail.
+           
+           
         """
         self.simulation     = simulation
         self.mass           = mass  
