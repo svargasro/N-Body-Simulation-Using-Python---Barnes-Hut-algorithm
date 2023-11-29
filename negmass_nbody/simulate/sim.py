@@ -55,6 +55,7 @@ def load_as_dask_array(index, chunks_value):
     file3 = h5py.File('./DATA/mass.hdf5', mode='r')
     mass_dset = file3['/x']
     # Create dask arrays:
+
     position = da.from_array(position_dset, chunks=(chunks_value))
     velocity = da.from_array(velocity_dset, chunks=(chunks_value))
     mass = da.from_array(mass_dset, chunks=(chunks_value))
@@ -101,7 +102,8 @@ def update_velocities(position, velocity, mass, G, epsilon):
 
 
 def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
-    """Calculate the interactions between all particles and update the velocities.
+    """
+    Calculate the interactions between all particles and update the velocities.
     
     Args:
     position (dask array): dask array of all particle positions in cartesian coordinates.
@@ -112,55 +114,46 @@ def update_velocities_bh(position, velocity, mass, G, epsilon, theta=0.5):
     
     Returns:
     velocity: updated particle velocities in cartesian coordinates.
+    ##position: updated particle velocities in cartesian coordinates.
     """
-    focus_index    = 0
-    node_list_index= 2 #¿Y si fuera 0?
-    node_list      = ["regional", "point", "both"]
-    node_type      = node_list[node_list_index]
-    restitution_coefficient=0
-    absolute_pos = True
+
+    ##Paso de tiempo para el algoritmo de verlet. Delta_t.
     timestep=1
-    #timestep       = 100000
-    
-    # mass,density, position, velocity, color (data from the web)
-    # starting_data  = [{'suns':    [('Sun',     1    , 1.41, (0., 0., 0.),     (0., 0., 0.),    'yellow')],
-    #                             'planets': [('Mercury', 0.055, 5.43, (-0.449, 0., 0.), (0., 47.36, 0.), 'orange'),
-    #                                        ('Venus',   0.815, 5.24, (-0.728, 0., 0),  (0., 35.02, 0.), 'yellow'),
-    #                                         ('Earth',   1    , 5.51, (-1, 0, 0.),      (0., 29.78, 0.), 'lightgreen'),
-    #                                         ('Mars',    0.107, 3.93, (-1.658, 0., 0.), (0., 24.08, 0.), 'red')]}]
-    
-
-    #Simulations solo contiene un elemento, que se llamará simulation.
-    simulation = Simulation(theta, restitution_coefficient, absolute_pos, focus_index)
     
     
 
+    ##La simulación recibe el nombre de simulation. 
+    simulation = Simulation(G,epsilon,theta)
+    
+    
+    ##Se toman posición velocidad y masa como arreglos de numpy. 
     position = position.compute()
     velocity = velocity.compute()
-    shapeVelocity= velocity.shape
     mass = mass.compute()
-
+    shapeVelocity= velocity.shape
+    
+    ##Se crea la lista que contrendrá todos los objetos de la simulación. 
     starting_data_list = list()
     starting_data = [{'particles':starting_data_list}]
-                     
+
     for i in range(0,len(position)):
         starting_data_list.append((mass[i], position[i], velocity[i]))
-
+    
+    ##Cada cuerpo de la simulación, tiene asociados los atributos de masa, posición y velocidad.
     for i, system in enumerate(starting_data):
         for bodytype in system.keys():
             for body in system[bodytype]:
                 SimulationBody(simulation, body[0], body[1], body[2])
-
-    simulation.set_focus(None)
-                #Planet(self.simulations[i], body[0], body[1], body[2], body[3], body[4], body[5], self.trail_node_number, self.trail_node_distance)
-    #simulation.calculate(self.timestep, self.draw_box, self.node_type)
+    ##Se almacenan todos los cuerpos de la simulación en simulation. 
     
-    simulation.calculate(timestep, True , node_type)
+    ##Se calcula la velocidad y posición nuevas de cada cuerpo.
+    simulation.calculate(timestep)
+    
     
     velocity=np.zeros(shapeVelocity)
     position=np.zeros(shapeVelocity)
     
-
+    ##Se actualizan los valores de cada uno de los cuerpos.
     for i,body in enumerate(simulation.bodies):
         velocity[i]= body.velocity
         position[i]=body.position
@@ -229,14 +222,20 @@ def run_nbody():
         # Start the N-body iteration:
         start = t.time()
         
-        # Update the particle velocities: (Devuelve Numpy)
+        ## 
+        '''
+        Update the particle positions: Como update_velocities_bh contiene el 
+        algoritmo de verlet internamente, ya no se devuelve únicamente la velocidad 
+        sino la velocidad y posición. 
+        '''
+        
         position, velocity = update_velocities_bh(position, velocity, mass, G, epsilon)
         
-        # Update the particle positions:
+       
     
 
-        #position = position.compute()
-        #position += velocity
+        ##position = position.compute()
+        ##position += velocity
         
         # End the iteration:
         end = t.time()

@@ -9,9 +9,8 @@ class Node():
     """Stores data for Octree nodes."""
 
     def __init__(self, middle, dimension):
-        """Method that sets up a node.
-
-        Method that sets up and declares variables for an octree node.
+        """
+        Método que crea un nodo.
 
         Args:
             middle: Position of center of the position.
@@ -21,7 +20,6 @@ class Node():
         self.middle     = middle
         self.dimension  = dimension
         self.mass       = None
-        self.corners    = None
         self.center_of_mass = None
         self.nodes = []
         self.subnodes = [[[None, None],      # right front (top, bottom)
@@ -36,7 +34,8 @@ class Node():
         return (self.subnodes[quad[0]][quad[1]][quad[2]])
 
     def create_subnode(self, quad):
-        """Method that creates a subnode.
+        """
+        Method that creates a subnode.
 
         Method that determines the middle and dimension of the subnode
         of a specific quadrant of the node. Initializes a subnode and adds
@@ -63,31 +62,15 @@ class Node():
         self.nodes.append(node)
 
     def get_quad(self, point):
+        #Solo con 3 valores se puede determinar en cuál de los 4 cuadrantes está el nodo.
         x, y, z = 1, 1, 1
-        if point[0] > self.middle[0]:  # right
+        if point[0] > self.middle[0]:  # Si x= 0, es el nodo que está a la derecha. Si x=1, es el nodo que está a la izquierda.
             x = 0
-        if point[1] > self.middle[1]:  # front
+        if point[1] > self.middle[1]:  # Si x= 0, es el nodo que está en frente. Si x=1, es el nodo que está en el fondo.
             y = 0
-        if point[2] > self.middle[2]:  # top
+        if point[2] > self.middle[2]:  # Si x= 0, es el nodo que está arriba. Si x=1, es el nodo que está abajo.
             z = 0
         return [x, y, z]
-
-    def get_corners(self):
-        """Method that gets corners of a node.
-
-        Method that get corners of a node for visualization. Iterates through
-        the top and bottom for front and back for right and left.
-        """
-        if self.corners is None:
-            self.corners = []
-            for x in [1, -1]:          # right or left
-                for y in [1, -1]:      # front or back
-                    for z in [1, -1]:  # top or bottom
-                        pos = [self.middle[0] + ((self.dimension / 2) * x),
-                               self.middle[1] + ((self.dimension / 2) * y),
-                               self.middle[2] + ((self.dimension / 2) * z)]
-                        self.corners.append(pos)
-        return self.corners
 
     def in_bounds(self, point):
         val = False
@@ -107,6 +90,7 @@ class Node():
         the mass posistions of the subnode weighted by weights of 
         the subnodes.
         """
+
         if self.particle is not None:
             self.center_of_mass = np.array([*self.particle.position])
             self.mass = self.particle.mass
@@ -127,7 +111,7 @@ class Node():
 class Octree():
     """Handles setup and calculations of the Barnes-Hut octree."""
 
-    def __init__(self, particles, root_node, theta, node_type):
+    def __init__(self, particles, root_node, theta):
         """Method that sets up an octree.
 
         Method that sets up the variables for the octree. Calls functions
@@ -141,7 +125,7 @@ class Octree():
         self.theta = theta
         self.root_node = root_node
         self.particles = particles
-        self.node_type = node_type
+        
 
         for particle in self.particles:
             self.insert_to_node(self.root_node, particle)
@@ -184,57 +168,48 @@ class Octree():
         elif subnode.particle is None and len(subnode.nodes) >= 1:  # case region node
             self.insert_to_node(subnode, particle)
 
-    def update_forces_collisions(self):
-
-        self.collision_dic = {}
+    def update_forces(self,G,epsilon):
         for particle in self.particles:
-            self.collision_dic[particle] = []
             particle.force = np.array([0., 0., 0.])
-            particle.e_pot = 0
-            self.calc_forces(self.root_node, particle)
-            particle.e_pot /= 1  # 2
+            self.calc_forces(self.root_node, particle,G,epsilon)
+            
 
-            if len(self.collision_dic[particle]) == 0:
-                #print('Debe ser 0: ',len(self.collision_dic[particle]))
-                del self.collision_dic[particle]
+            
+    def calc_forces(self, node, particle,G,epsilon):
+        """Método que calcula la fuerza sobre una partícula de un octree.
 
-    def calc_forces(self, node, particle):
-        """Method that calculates the force on an octree particle.
+        Método que calcula la fuerza sobre una partícula de un octree al iterar a través del octree. 
+        Si el nodo es un nodo puntual que no contiene el cuerpo en sí mismo, calcula directamente las fuerzas.
 
-        Method that calculates the force on an octree particle by iterating
-        through the octree.
-        If the node is a point node that doesnt hold the body itelf, directly
-        calculate the forces.
-        If its a regional node and the dimension/distance ratio is smaller
-        than theta and the center of mass position is not the same as the
-        particle position, calculate the force between the node and
-        the particle.
+        Si es un nodo regional y la relación entre la dimensión/distancia es menor que theta 
+        y la posición del centro de masa no es la misma que la posición de la partícula, 
+        calcula la fuerza entre el nodo y la partícula.
 
         Args:
             node: Quadrant of node.
             particle: Simulation body.
         """
+        
         if node.particle is not None and node.particle != particle:
-            force, e_pot, distance = self.gravitational_force(particle, node, np.array([]), np.array([]))
+            force, distance = self.gravitational_force(particle, node, np.array([]), np.array([]),G,epsilon)
             particle.force -= force
-            particle.e_pot -= e_pot
-            # if distance < particle.radius + node.particle.radius and particle.mass > node.particle.mass:
-            #     self.collision_dic[particle].append(node.particle)
-
+            
+            
+            
         elif node.particle is None and not np.array_equal(particle.position, node.center_of_mass):
             distance = np.array([*particle.position]) - np.array([*node.center_of_mass])
             r = math.sqrt(np.dot(distance, distance))
             d = node.dimension
             if d / r < self.theta:
-                force, e_pot, distance = self.gravitational_force(particle, node, distance, r)
+                force, distance = self.gravitational_force(particle, node, distance, r,G,epsilon)
                 particle.force -= force
-                particle.e_pot -= e_pot
             else:
                 for subnode in node.nodes:
-                    self.calc_forces(subnode, particle)
+                    self.calc_forces(subnode, particle,G,epsilon)
 
-    def gravitational_force(self, particle, node, distance_vec, distance_val):  # can be ragional or point node
-        """Method that calculates the force between two particles.
+    def gravitational_force(self, particle, node, distance_vec, distance_val,G,epsilon):  # can be ragional or point node
+        """
+        Method that calculates the force between two particles.
     
         Method that calculates the force acted on the particle by
         another particle or a node. Only calculates the distance and vector
@@ -247,7 +222,7 @@ class Octree():
             distance_val: Magnitude of distance betweent the bodies
         
         Returns:
-            The force, potential energy and distance between two bodies or 
+            The force and distance between two bodies or 
             the body and the node.
         """
         force = np.array([0., 0., 0.])
@@ -257,52 +232,18 @@ class Octree():
         else:
             distance = distance_vec
             distance_mag = distance_val
-
-        G = 1 #G equals 1
-        e_pot = G * particle.mass * node.mass / distance_mag
+        distance_mag = np.sqrt(np.dot(distance, distance)+np.square(epsilon))
+            
         force_mag = G * particle.mass * node.mass / np.dot(distance, distance)
         force = (distance / distance_mag) * force_mag
-        return force, e_pot, distance_mag
+        return force, distance_mag
 
-    def get_all_nodes(self, node, lst):
-
-        if node.particle is None and len(node.nodes) >= 1 or node.particle is not None:
-            if len(node.nodes) >= 1:
-                if self.node_type == "regional" or self.node_type == "both":
-                    lst.append(node.get_corners()) 
-                for subnode in node.nodes:
-                    self.get_all_nodes(subnode, lst)
-            if node.particle is not None and (self.node_type == "point" or self.node_type == "both"):
-                lst.append(node.get_corners())
-
-
-# if __name__ == "__main__":
-#     from Simulation import Planet
-#     planet1 = Planet
-#     planet1.position = (10, 20, 30)
-#     planet1.mass = 200
-
-#     planet2 = Planet
-#     planet2.position = (-10, -20, -30)
-#     planet2.mass = 20
-
-#     data = [planet1, planet2]  # planet2]
-#     root = Node([0, 0, 0], 100)
-#     theta = 1
-
-#     print(root.in_bounds(planet2.position))
-#     quad = root.get_quad(planet2.position)
-#     print(quad)
-#     root.create_subnode(quad)
-#     subnode = root.get_subnode(quad)
-#     print(subnode.middle)
-#     print(subnode.get_corners())
 
 
 class Simulation:
     """Handles data and connection between simulation bodies."""
 
-    def __init__(self, theta=1/2, rc=0, absolute_pos=True, focus_index=0):
+    def __init__(self,G,epsilon,theta=1/2):
         """Setup of the simulation.
 
         Method that sets up the simulation with parameters and type of
@@ -311,111 +252,34 @@ class Simulation:
         Args:
             theta: Theta value for the Barnes Hut simulation.
             rc: Restitution coefficient for collisions.
-            absolute_pos: Bool value to determine type of movement.
             focus_index: Index of the list focus_options form 0 to 2.
             node_type: String that determines what nodes are displayed.
         """
-        self.restitution_coefficient = rc
-        self.focus_options  = ["none", "body", "cm"]
-        self.absolute_pos   = absolute_pos
+        
+        
         self.theta          = theta
-        self.iteration      = 0
         self.bodies         = []
-        self.focused_body   = None
-        self.first          = True
-        self.time           = 0
-        self.total_ekin     = 0
-        self.total_epot     = 0
-        self.total_e        = 0
-        self.cm_pos         = np.array([0, 0, 0])
-        self.cm_velo        = None
+        self.G=G
+        self.epsilon=epsilon
+        
             
-        if focus_index >= 0 and focus_index < len(self.focus_options):
-            self.focus_index = focus_index
-        else:
-            self.focus_index = 0
-            print(f"focus index {focus_index} not in focus options {self.focus_options}, swithing to default {self.focus_options[0]}")
-        self.focus_type = self.focus_options[focus_index]
+       
 
     def add_body(self, body):
         self.bodies.append(body)
 
-    def get_bodies(self):
-        return self.bodies
-
-    def remove_body(self, body):
-        self.bodies.remove(body)
-        if body == self.focused_body and len(self.bodies) > 0:
-            self.focused_body = random.choice(self.bodies)
-        elif body == self.focused_body:
-            print("error: no bodies left")
-
-    def set_focus(self, body):
-
-        if body in self.bodies:
-            self.focused_body = body
-        elif self.focus_type == "body":
-            self.focused_body = random.choice(self.bodies)
-        else:
-            self.focused_body = None
-
-    def update_center_of_mass(self, timestep):
-        new_pos = np.array(self.tree.root_node.center_of_mass)
-        old_pos = self.cm_pos
-        self.cm_velo = (new_pos - old_pos) / timestep
-        self.cm_pos = new_pos
-
-    def get_focus_pos(self):
-        if self.focus_type == "body":
-            pos = self.focused_body.position
-        elif self.focus_type == "cm":
-            pos = self.cm_pos
-        else:
-            pos = np.array([0, 0, 0])
-        return pos
-
-    def switch_focus(self, direction):
-        if self.focus_type == "body":
-            focused_index = self.bodies.index(self.focused_body)
-
-            if direction == "previous":
-                focused_index += 1
-                if focused_index > len(self.bodies) - 1:
-                    focused_index = 0
-
-            elif direction == "next":
-                focused_index -= 1
-                if focused_index < 0:
-                    focused_index = len(self.bodies) - 1
-
-            self.set_focus(self.bodies[focused_index])
-
-    def clear_trail(self):
-        for body in self.bodies:
-            body.trail = []
-
-    def calculate(self, timestep, draw_box, node_type):
-        """Method that calculates a simulation physics step.
-
-        Method that calls functions for physics calculations. 
-        Also includes caclulations for the total energy. If draw_box is
-        true the boxes of the octree are also extracted.
+    def calculate(self, timestep):
+        """
+        Método que calcula un paso de simulación.
 
         Args:
-            timestep: Amount of seconds that are counted with in the
-                physics calculations.
-            draw_box: Boolean value that determines if cube data should be 
-                extracted. Implemented to run faster.
+            timestep: Amount of seconds that are counted with in the physics calculations.
         """
-        if self.first:
-            self.first = False
-            self.update_interactions(node_type)
-            for body in self.bodies:
-                body.acceleration = body.force / body.mass
         
-
-        #self.update_center_of_mass(timestep)
-        #Cambio interesante
+        self.update_interactions()
+        for body in self.bodies:
+            body.acceleration = body.force / body.mass
+    
         for body in self.bodies:
             body.update_position(timestep)
             body.update_velocity(timestep)
@@ -425,73 +289,20 @@ class Simulation:
 
         self.update_interactions(node_type)
         
-        self.tree_nodes = []
-        if draw_box:
-            self.tree.get_all_nodes(self.tree.root_node, self.tree_nodes)
+       
 
-        for body in self.destroyed:
-            self.remove_body(body)
+    
 
-        self.total_ekin = 0
-        self.total_epot = 0
-        self.total_e = 0
-        for body in self.bodies:
-            self.total_ekin += body.e_kin
-            self.total_epot += (body.e_pot / 2)  # no clue if this is right
-        self.total_ekin /= len(self.bodies)
-        self.total_epot /= len(self.bodies)
+    def update_interactions(self):
+        ##Se establece el centro del nodo raíz. 
+        center = np.array([0, 0, 0])
 
-        self.total_e = self.total_ekin + self.total_epot  # epot is negative, higher energy the further you are
-
-        self.time += timestep
-        self.iteration += 1
-
-    def get_data(self):
-        """Method that gets simulation data.
-
-        Method that exports simulation data in the form of a list.
-        The list includes almost all values of the simulation excluding the
-        bodies themselves.
-
-        Returns:
-            Body data, Octree data and system data for further usage.
-        """
-        default_pos = self.get_focus_pos()
-
-        body_data = []
-        for body in self.bodies:
-            body_type = type(body)
-            name    = body.name
-            pos     = body.position - default_pos
-            radius  = body.radius
-            mass    = body.mass
-            color   = body.color
-            trail = [position - default_pos for position in body.trail]
-            body_data.append((name, pos, radius, mass, color, trail, body.velocity,
-                              body.acceleration, body.density, body.force,
-                              body.e_kin, body.e_pot, body_type))
-
-        for cube in self.tree_nodes:
-            for point in cube:
-                point[0] -= default_pos[0]
-                point[1] -= default_pos[1]
-                point[2] -= default_pos[2]
-
-        system_data = [self.focus_type, self.focused_body, self.absolute_pos,
-                       self.theta, self.restitution_coefficient, self.total_ekin,
-                       self.total_epot, self.total_e, self.cm_pos, self.iteration,
-                       len(self.bodies), self.tree.root_node.middle, self.tree.root_node.dimension]
-
-        return body_data, self.tree_nodes, system_data, self.cm_pos - default_pos
-
-    def update_interactions(self, node_type):
-        center = self.get_focus_pos()
+        ##Se calcula cuál es el cuerpo que está más lejos para conocer cuál debe ser la dimensión del Octree.
 
         largest_val = 0
         furthest_body = None
         for body in self.bodies:
-            #for i, val in np.ndenumerate(body.position): Cambié
-            for i, val in enumerate(body.position):
+            for i, val in np.ndenumerate(body.position):
                 dist_sqr = (val - center[i])**2
                 if dist_sqr > largest_val:
                     largest_val = dist_sqr
@@ -500,38 +311,22 @@ class Simulation:
 
         dimension = math.sqrt(((furthest_body.position[largest_index] - center[largest_index]) * 2.5)**2)
         root = Node(center, dimension)
-        self.tree = Octree(self.bodies, root, self.theta, node_type)
+        ##Se crea el Octree:
+        self.tree = Octree(self.bodies, root, self.theta)
+        ##Se calcula la distribución de masa del Octree.
         root.compute_mass_distribution()
-        self.tree.update_forces_collisions()
-        self.compute_collisions(self.tree.collision_dic)
+        ##Se actualizan las fuerzas:
+        self.tree.update_forces(self.G,self.epsilon)
+        
 
-    def compute_collisions(self, collisions):#Ojito.
-        """Method that computes body collisions.
-
-        Method that computes body collisions based on the resitution
-        coefficient. Sort collisions from lowest to highest mass. So all
-        collisions can be determined. Calls body to body inelastic collision.
-
-        Args:
-            collisions: All collisons as extractes from the Barnes-Hut program.
-        """
-        self.destroyed = []
-        #bodies = list(collisions.keys())
-        bodies = []
-        bodies.sort(key=lambda element: element.mass)
-        for body in bodies:
-            other_bodies = collisions[body]
-            for other in other_bodies:
-                if other not in self.destroyed:
-                    body.inelastic_collision(other, self.restitution_coefficient)
+    
     
 
 
 class SimulationBody:
     """Data storage and caclulation of a simulation body"""
-    #def __init__(self, simulation, name, mass, density, position, velocity, color, nr_pos, point_dist):
     
-    def __init__(self, simulation, mass, position, velocity, nr_pos=50, point_dist=10):
+    def __init__(self, simulation, mass, position, velocity):
         """Method that sets up a simulation body.
 
         Method sets up and declares variables for a simulation body.
@@ -548,21 +343,11 @@ class SimulationBody:
             point_dist: Distance between nodes in the trail.
         """
         self.simulation     = simulation
-        #self.name           = name
         self.mass           = mass  
-        # self.density        = density  # density in g/cm^3
-        # self.radius         = self.calculate_radius()
         self.position       = np.array([*position])
         self.velocity       = np.array([*velocity])
-        # self.color          = color
-        self.nr_pos         = nr_pos
-        self.counter        = 0
-        self.point_dist     = point_dist
-        self.trail          = []
         self.acceleration   = np.array([0, 0, 0])
         self.force          = np.array([0, 0, 0])
-        self.e_pot          = 0
-        self.e_kin          = 0
         self.simulation.add_body(self)
 
     def update_position(self, timestep):
@@ -577,20 +362,6 @@ class SimulationBody:
         """
         self.position += (timestep * (self.velocity + timestep * self.acceleration / 2))
 
-        if not self.simulation.absolute_pos:  # relative movement
-            if self.simulation.focus_type == "body":
-                self.position -= (timestep * (self.simulation.focused_body.velocity + timestep * self.simulation.focused_body.acceleration / 2))
-            elif self.simulation.focus_type == "cm":
-                self.position -= self.simulation.cm_velo
-
-        self.counter += 1
-        if self.counter == self.point_dist:
-            self.trail.append(self.position.copy())
-            self.counter = 0
-
-        if len(self.trail) > self.nr_pos:
-            del self.trail[0]
-
     def update_velocity(self, timestep):
         """Method that calculates body velocity.
 
@@ -603,37 +374,6 @@ class SimulationBody:
         newacc = self.force / self.mass
         self.velocity += (self.acceleration + newacc) * timestep / 2
         self.acceleration = newacc
-        self.e_kin = .5 * self.mass * np.dot(self.velocity, self.velocity)
+        
 
-    # def calculate_radius(self):
-    #     density_kg = self.density * 1000
-    #     return ((3 * self.mass) / (4 * math.pi * density_kg))**(1 / 3)
-
-    def inelastic_collision(self, other, restitution_coefficient):
-        """Method that calculates an inelastic collision.
-
-        Method that calculates the collision between two objects based
-        on the restitution coefficient. If that coefficient if 0 the planets
-        merge. If the coefficient is higher than 0 to 1 the collision is more
-        elastic. Destroys body that is smaller than the other.
-
-        Args:
-            other: Other body that takes part in the collision.
-            restitution_coefficient: Coefficient that determines type of
-                collision.
-        """
-        # only if restitution_coefficient is 0 bodies merge
-        velo_u = ((self.mass * self.velocity) + (other.mass * other.velocity)) / (self.mass + other.mass)
-
-        if restitution_coefficient == 0:
-            # merge of planets (other is destroyed)
-            self.velocity = velo_u
-            self.mass += other.mass
-            self.radius = self.calculate_radius()
-            self.simulation.destroyed.append(other)
-        else:
-            # somewhat elastic collision
-            r = restitution_coefficient
-            self.velocity = ((self.velocity - velo_u) * r) + velo_u
-            other.velocity = ((other.velocity - velo_u) * r) + velo_u
-
+   
