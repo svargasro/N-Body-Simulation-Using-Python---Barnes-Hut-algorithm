@@ -1,6 +1,5 @@
 
 * Negative Mass N-body Simulation Codes
-========================================
 
 This software allows users to perform three-dimensional (3D) gravitational N-body simulations in Python, using both positive and negative masses.
 
@@ -27,7 +26,7 @@ For implementing the Barnes-Hut algorithm in the proposed simulation, several mo
    - The algorithm is structured using object-oriented programming, with significant modifications to key classes from the base code found at: PhySimdev, Python Gravity Simulation, https://github.com/PhySimdev/Python-Gravity-Simulation (2023).
 
 ** Core Classes
-   - **Simulation**:
+   - **Simulation**
      - Manages data and connects objects within each simulation iteration.
      - Key attributes include:
        - θ: multipole acceptance criterion.
@@ -35,19 +34,19 @@ For implementing the Barnes-Hut algorithm in the proposed simulation, several mo
        - epsilon: "softening factor."
      - Contains a list of all particles and manages the Octree creation and storage.
 
-   - **SimulationBody**:
+   - **SimulationBody**
      - Stores information about each simulated body (particle).
      - Attributes: mass, position, and velocity.
      - Contains methods to update positions and velocities after force calculations.
 
-   - **Octree**:
+   - **Octree**
      - Calculates and constructs the Octree.
      - Attributes: all simulated particles and the root node.
      - Manages particle insertion and subnode creation as necessary.
      - Defines methods for calculating the forces between nodes and particles.
      - Updates force attributes in `SimulationBody` objects within each `Simulation`.
 
-   - **Node**:
+   - **Node**
      - Stores Octree data.
      - Has subnode attributes as a 3D array indicating particles or nodes within each subnode.
      - Includes methods for subnode creation and for calculating mass distribution within each node.
@@ -56,14 +55,13 @@ After defining these objects, the `update_velocities_bh` function on sim.py exec
 
 
 * Dependencies
-------------
 
-numpy
+- numpy
 
-matplotlib
+- matplotlib
 
-h5py
+- h5py
 
-Dask
+- Dask
 
-ImageMagick
+- ImageMagick
