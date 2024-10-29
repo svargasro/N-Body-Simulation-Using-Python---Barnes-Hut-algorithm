@@ -1,0 +1,69 @@
+
+* Negative Mass N-body Simulation Codes
+========================================
+
+This software allows users to perform three-dimensional (3D) gravitational N-body simulations in Python, using both positive and negative masses.
+
+The base codes used correspond to the paper:
+"A unifying theory of dark energy and dark matter: Negative masses and matter creation within a modified LambdaCDM framework.", available at:
+
+http://adsabs.harvard.edu/cgi-bin/bib_query?arXiv:1712.07962
+
+https://arxiv.org/abs/1712.07962
+
+* Modifications and Implementation Details
+
+For implementing the Barnes-Hut algorithm in the proposed simulation, several modifications and key elements of the original code were clarified.
+
+** Galaxy and Negative Mass Distribution Setup
+   - The simulation places a positive-mass galaxy at the center of an initial particle distribution.
+   - This positive-mass distribution is surrounded by a cube of negative mass, scaled to resemble the properties of the Milky Way.
+   - Initial conditions:
+     - Negative masses have a uniform initial position distribution.
+     - Initial velocities are set to zero.
+
+** Barnes-Hut Algorithm Implementation
+   - The modified code details are annotated with "##" to indicate all changes from the original.
+   - The algorithm is structured using object-oriented programming, with significant modifications to key classes from the base code found at: PhySimdev, Python Gravity Simulation, https://github.com/PhySimdev/Python-Gravity-Simulation (2023).
+
+** Core Classes
+   - **Simulation**:
+     - Manages data and connects objects within each simulation iteration.
+     - Key attributes include:
+       - θ: multipole acceptance criterion.
+       - G: normalized gravitational constant.
+       - epsilon: "softening factor."
+     - Contains a list of all particles and manages the Octree creation and storage.
+
+   - **SimulationBody**:
+     - Stores information about each simulated body (particle).
+     - Attributes: mass, position, and velocity.
+     - Contains methods to update positions and velocities after force calculations.
+
+   - **Octree**:
+     - Calculates and constructs the Octree.
+     - Attributes: all simulated particles and the root node.
+     - Manages particle insertion and subnode creation as necessary.
+     - Defines methods for calculating the forces between nodes and particles.
+     - Updates force attributes in `SimulationBody` objects within each `Simulation`.
+
+   - **Node**:
+     - Stores Octree data.
+     - Has subnode attributes as a 3D array indicating particles or nodes within each subnode.
+     - Includes methods for subnode creation and for calculating mass distribution within each node.
+
+After defining these objects, the `update_velocities_bh` function on sim.py executes the necessary methods to compute new positions and velocities for the simulated objects. This data is then written to a file for visualization.
+
+
+* Dependencies
+------------
+
+numpy
+
+matplotlib
+
+h5py
+
+Dask
+
+ImageMagick
